@@ -1,21 +1,26 @@
 FROM ubuntu:14.04
 
-RUN apt-get update
-RUN apt-get -y upgrade
-RUN apt-get -y install python3-pip python3-numpy python3-matplotlib python3-scipy python3-pandas unoconv libreoffice
-RUN pip3 install scikit-learn django django-jsonfield
-
-# Create local user and setup source code and directories
-RUN useradd -mU -s /bin/bash -d /home/local local
-COPY src /home/local/src
-COPY data /home/local/data
-RUN chown -R local.local /home/local
+RUN export uid=1000 gid=1000 && \
+    mkdir -p /home/local && \
+    echo "local:x:${uid}:${gid}:local,,,:/home/local:/bin/bash" >> /etc/passwd && \
+    echo "local:x:${uid}:" >> /etc/group && \
+    echo "local ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/local && \
+    chmod 0440 /etc/sudoers.d/local && \
+    chown ${uid}:${gid} -R /home/local
 USER local
+ENV HOME /home/local
+WORKDIR /home/local
+
+RUN sudo apt-get update
+RUN sudo apt-get -y upgrade
+RUN sudo apt-get -y install python3-pip python3-numpy python3-matplotlib python3-scipy python3-pandas libreoffice
+RUN sudo pip3 install scikit-learn ipython
+
+COPY data /home/local/data
 WORKDIR /home/local/data
-RUN soffice --headless --convert-to csv *.ods
-WORKDIR /home/local/src/web
-RUN python3 manage.py migrate
-ENV DJANGO_SETTINGS_MODULE web.settings
-RUN python3 firstsetup.py
-EXPOSE 8000
-CMD python3 manage.py runserver 0.0.0.0:8000
+RUN sudo libreoffice --headless --convert-to csv /home/local/data/*.ods
+RUN mkdir /home/local/results
+COPY src /home/local/src
+RUN sudo chown -R local.local /home/local
+WORKDIR /home/local/src
+CMD /bin/bash

@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-./build.sh && docker run -ti --rm -e DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix martin "$@"
+docker pull rubendv-pc:5000/martin && docker run -ti --rm -v $PWD/results:/home/local/results:rw rubendv-pc:5000/martin "$@"

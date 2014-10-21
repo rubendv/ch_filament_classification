@@ -1,133 +1,129 @@
 from sklearn import datasets
-from sklearn.cross_validation import train_test_split, StratifiedKFold, cross_val_score
+from sklearn.cross_validation import train_test_split, StratifiedKFold, StratifiedShuffleSplit, cross_val_score
 from sklearn.grid_search import GridSearchCV
-from sklearn.metrics import classification_report, make_scorer, confusion_matrix
-from sklearn.svm import SVC
+from sklearn.metrics import classification_report, make_scorer, confusion_matrix, recall_score, precision_score
+from sklearn.svm import SVC, LinearSVC
 from sklearn.tree import DecisionTreeClassifier, export_graphviz
 from sklearn.preprocessing import scale, normalize
 from sklearn.ensemble import RandomForestClassifier
 import pandas as pd
-import matplotlib.pyplot as plt
 import numpy as np
+import json
+import os
+import sys
+import argparse
 
-# Loading the Digits dataset
-dataset = pd.read_csv("AllDATA.csv", true_values=["yes"], false_values=["no"])
+def load_data(path):
+    dataset = pd.read_csv(path, true_values=["true"], false_values=["false"], skiprows=[1])
+    dataset.drop(dataset.columns[0], axis=1, inplace=True)
 
-# To apply an classifier on this data, we need to flatten the image, to
-# turn the data in a (samples, feature) matrix:
-shape_parameters = ["Roundedness(GEOMETRICAL)","Symmetry(GEOMETRICAL)","DirDepStdDev(GEOMETRICAL)","Roundness(GEOMETRICAL)","Compactness(GEOMETRICAL)"]
-X = dataset[dataset.columns[:-1]]
-y = dataset.CH
+    X = dataset[dataset.columns[:-1]]
+    y = dataset[dataset.columns[-1]]
+    return scale(X, axis=0), y
 
-# Split the dataset in two equal parts
-X_train, X_test, y_train, y_test = train_test_split(
-    scale(X, axis=0), y, test_size=0.5, random_state=0)
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--with-hmi", help="include HMI based parameters", action="store_true")
+    args = parser.parse_args()
 
-# Set the parameters by cross-validation
-grid = {'SVM': (
-            SVC(), 
-            [{'kernel': ['rbf'], 'gamma': [0.0, 1e-3, 1e-4], 'C': [1, 10, 100, 1000]}, {'kernel': ['linear'], 'C': [1, 10, 100, 1000]}, {'kernel': ['poly'], 'C': [1, 10, 100, 1000], 'gamma': [0.0, 1e-3, 1e-4], 'degree': [2, 3, 4, 5]}]
-        ),
-        'Decision Tree': (
-            DecisionTreeClassifier(), 
-            [{'criterion': ['gini', 'entropy'], 'splitter': ['best', 'random'], 'max_features': [0.1, 0.5, 1.0, "auto", "sqrt", "log2", None], 'min_samples_split': [2, 4, 8, 16], 'max_depth': [2, 4]}]
-        ),
-        'Random Forest': (
-            RandomForestClassifier(),
-            [{'criterion': ['gini', 'entropy'], 'max_features': [0.1, 0.5, 1.0, "auto", "sqrt", "log2", None], 'n_estimators': [5, 10, 15, 20, 50, 100], 'min_samples_split': [2, 4, 8, 16]}]
-        )
-}
+    if args.with_hmi:
+        path = "/home/local/data/DATASET_AIA_HMI.csv"
+    else:
+        path = "/home/local/data/DATASET_AIA.csv"
 
-def tss(y_true, y_pred):
-    confmat = confusion_matrix(y_true, y_pred)
-    tn = float(confmat[0, 0])
-    tp = float(confmat[1, 1])
-    fp = float(confmat[0, 1])
-    fn = float(confmat[1, 0])
-    return tp / (tp + fn) - fp / (fp + tn)
+    X, y = load_data(path)
 
-def tn_rate(y_true, y_pred):
-    confmat = confusion_matrix(y_true, y_pred)
-    tn = float(confmat[0, 0])
-    tp = float(confmat[1, 1])
-    fp = float(confmat[0, 1])
-    fn = float(confmat[1, 0])
-    return tn / (tn + fp)
+    C = 10.0**np.arange(-4, 5)
+    gamma = 10.0**np.arange(-4, 5)
 
-def accuracy(y_true, y_pred):
-    confmat = confusion_matrix(y_true, y_pred)
-    tn = float(confmat[0, 0])
-    tp = float(confmat[1, 1])
-    fp = float(confmat[0, 1])
-    fn = float(confmat[1, 0])
-    return (tn + tp) / np.sum(confmat)
+    grid = {'SVM': (
+                SVC(), 
+                [{'kernel': ['rbf'], 'gamma': gamma, 'C': C, 'class_weight': [None, 'auto']}, {'kernel': ['sigmoid'], 'gamma': gamma, 'C': C, 'class_weight': [None, 'auto']}, {'kernel': ['linear'], 'C': C, 'class_weight': [None, 'auto']}, {'kernel': ['poly'], 'C': C, 'gamma': gamma, 'degree': np.arange(2, 6), 'class_weight': [None, 'auto']}]
+            ),
+            'Linear SVM': (
+                LinearSVC(),
+                [{'C': C, 'dual': [True, False], 'class_weight': [None, 'auto']}]
+            ),
+            'Decision Tree': (
+                DecisionTreeClassifier(), 
+                [{'criterion': ['gini', 'entropy'], 'splitter': ['best', 'random'], 'max_features': [0.1, 0.5, 1.0, "auto", "sqrt", "log2", None], 'min_samples_split': [2, 4, 8, 16], 'max_depth': [2, 4]}]
+            ),
+            'Random Forest': (
+                RandomForestClassifier(),
+                [{'criterion': ['gini', 'entropy'], 'max_features': [0.1, 0.5, 1.0, "auto", "sqrt", "log2", None], 'n_estimators': [5, 10, 15, 20, 50, 100], 'min_samples_split': [2, 4, 8, 16]}]
+            )
+    }
 
-def array_to_string(arr):
-    return "[" + ", ".join(map(lambda x: "%.5f" % x, arr)) + "]"
+    def tss(y_true, y_pred):
+        confmat = confusion_matrix(y_true, y_pred)
+        tn = float(confmat[0, 0])
+        tp = float(confmat[1, 1])
+        fp = float(confmat[0, 1])
+        fn = float(confmat[1, 0])
+        return tp / (tp + fn) - fp / (fp + tn)
 
-tss_scorer = make_scorer(tss)
-tn_rate_scorer = make_scorer(tn_rate)
-accuracy_scorer = make_scorer(accuracy)
+    def tn_rate(y_true, y_pred):
+        confmat = confusion_matrix(y_true, y_pred)
+        tn = float(confmat[0, 0])
+        tp = float(confmat[1, 1])
+        fp = float(confmat[0, 1])
+        fn = float(confmat[1, 0])
+        return tn / (tn + fp)
+    def tp_rate(y_true, y_pred):
+        confmat = confusion_matrix(y_true, y_pred)
+        tn = float(confmat[0, 0])
+        tp = float(confmat[1, 1])
+        fp = float(confmat[0, 1])
+        fn = float(confmat[1, 0])
+        return tp / (fn + tp)
+    def fp_rate(y_true, y_pred):
+        confmat = confusion_matrix(y_true, y_pred)
+        tn = float(confmat[0, 0])
+        tp = float(confmat[1, 1])
+        fp = float(confmat[0, 1])
+        fn = float(confmat[1, 0])
+        return fp / (fp + tn)
 
-scorers = [("TSS", tss_scorer), ("Accuracy", accuracy_scorer), ("TN rate", tn_rate_scorer)]
+    def accuracy(y_true, y_pred):
+        confmat = confusion_matrix(y_true, y_pred)
+        tn = float(confmat[0, 0])
+        tp = float(confmat[1, 1])
+        fp = float(confmat[0, 1])
+        fn = float(confmat[1, 0])
+        return (tn + tp) / np.sum(confmat)
 
-results = {}
+    def array_to_string(arr):
+        return "[" + ", ".join(map(lambda x: "%.5f" % x, arr)) + "]"
 
-i = 0
-scores_array = []
-for name, score in scorers:
-    print "### Tuning hyper parameters for", name
-    for alg_name, (classifier, tuned_parameters) in grid.iteritems():
-        print "# Algorithm:", alg_name
+    tss_scorer = make_scorer(tss)
+    tn_rate_scorer = make_scorer(tn_rate)
+    accuracy_scorer = make_scorer(accuracy)
 
-        clf = GridSearchCV(classifier, tuned_parameters, cv=StratifiedKFold(y_train, n_folds=10), scoring=score, n_jobs=-1)
-        clf.fit(X_train, y_train)
-        
-        #print("Results on development set:")
-        #y_true, y_pred = y_train, clf.predict(X_train)
-        #print(classification_report(y_true, y_pred))
-        #print "TSS:", tss(y_true, y_pred), "TN rate:", tn_rate(y_true, y_pred)
-        #print "Confusion matrix:", confusion_matrix(y_true, y_pred)
+    scorers = [("TSS", tss), ("Precision", precision_score), ("Recall",recall_score)]
 
+    cv_test = StratifiedShuffleSplit(y, n_iter=100, test_size=0.25)
 
-        #print("Best parameters set found on development set:")
-        #print ""
-        #print(clf.best_estimator_)
-        #print ""
+    results = {}
+    for scorer in ("tss", "fpr", "tpr"):
+        results[scorer] = dict([(alg_name, []) for alg_name in grid.keys()]) 
 
-        if alg_name == 'decision tree':
-            with open("tree_%s.dot" % name, "w+") as f:
-                export_graphviz(clf.best_estimator_, out_file=f, feature_names=X.columns.values.tolist())
-            #print ""
-
-        (params, mean_score, scores) = sorted(clf.grid_scores_, key=lambda x: x[1])[-1]
-        #print("Development set: %0.3f (+/-%0.03f) for %r" % (mean_score, scores.std() / 2, params))
-
-        #print("Grid scores on development set:")
-        #print ""
-        #for params, mean_score, scores in clf.grid_scores_:
-        #    print("%0.3f (+/-%0.03f) for %r"
-        #          % (mean_score, scores.std() / 2, params))
-        #print ""
-
-        #print("Detailed classification report:")
-        #y_true, y_pred = y_test, clf.predict(X_test)
-        #print(classification_report(y_true, y_pred))
-        #print "TSS:", tss(y_true, y_pred), "TN rate:", tn_rate(y_true, y_pred)
-        #print "Confusion matrix:", confusion_matrix(y_true, y_pred)
-        print "Best parameters:", params
-        for (scorer_name, scorer2) in scorers:
-            scores = cross_val_score(clf.best_estimator_, X_test, y_test, scoring=scorer2, cv=10)
-            if score == tss_scorer:
-                scores_array.append(scores)
-            print("Evaluation using %s: %0.3f (+/-%0.03f): %s" % (scorer_name, scores.mean(), scores.std() / 2, array_to_string(scores)))
-        print ""
-    print ""
-plt.boxplot(scores_array)
-plt.ylabel("True Skill Statistic (TSS)")
-plt.xlabel("Classifier")
-plt.xticks([1, 2, 3], map(lambda x: x[0], grid.iteritems()))
-plt.title("Performance")
-plt.savefig("figure.pdf")
-plt.show()
-
+    for i, (train_index, test_index) in enumerate(cv_test):
+        X_train, X_test = X[train_index], X[test_index]
+        y_train, y_test = y[train_index], y[test_index]
+        cv_parameter = StratifiedKFold(y_train, n_folds=5, shuffle=True, random_state=0)
+        for j, (alg_name, (classifier, tuned_parameters)) in enumerate(grid.items()):
+            print("Testing {}".format(alg_name))
+            clf = GridSearchCV(classifier, tuned_parameters, cv=cv_parameter, scoring=tss_scorer, n_jobs=-1)
+            clf.fit(X_train, y_train)
+            y_pred = clf.predict(X_test)
+            results["fpr"][alg_name].append(fp_rate(y_test, y_pred))
+            results["tpr"][alg_name].append(tp_rate(y_test, y_pred))
+            results["tss"][alg_name].append(tss(y_test, y_pred))
+        print("Iteration {}/{} done".format(i+1, cv_test.n_iter))
+    with open("/tmp/results.json", "w+") as f:
+        json.dump(results, f)
+    if args.with_hmi:
+        suffix = "with"
+    else:
+        suffix = "without"
+    print("Return value: {}".format(os.system("sudo cp /tmp/results.json /home/local/results/results_{}_hmi.json".format(suffix))))
