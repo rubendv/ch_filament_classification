@@ -1,0 +1,221 @@
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%                                                                
+%%      SWSC LaTeX class for Journal of Space Weather and Space Climate
+%%      
+%%                                      (c) Springer-Verlag HD
+%%                                      revised by EDP Sciences
+%%                                      further revised by J. Watermann 
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%%      This demonstration file was derived from aa.dem
+%%  
+%%      AA vers. 7.0, LaTeX class for Astronomy & Astrophysics
+%%      demonstration file
+%%                                                (c) Springer-Verlag HD
+%%                                                revised by EDP Sciences
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%%      modified for Journal of Space Weather and Space Climate
+%%      by Jurgen Watermann, Editorial Advisor to SWSC
+%%
+%%      01-04-2012
+%%      02-04-2012 revision 1
+%%      12-07-2012 revision 2
+%%      06-12-2012 revision 3 
+%%      01-01-2014 revision 4
+%%      06-03-2014 revision 4.1
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%%      The two sub-figures referenced in this template are of eps and png type,
+%%      respectively, in order to demonstrate the usepackages subfigure and
+%%      epstopdf and thus create pdf-only output 
+%%
+%%      If you want to use TexLive or MikTex together with a bibtex bibliography 
+%%      file you may run Latex2e from the command line 
+%%          pdflatex -shell-escape swsc.tex
+%%          bibtex swsc (do not include an extension such as .tex or .bib)
+%%          pdflatex -shell-escape swsc.tex
+%%          pdflatex -shell-escape swsc.tex
+%%
+%%      A double call to pdflatex after calling bibtex is necessary in order to
+%%      set citations and references correctly and insure that foreward/backward  
+%%      linkage (backref option) is properly applied
+%%      If you use MikTex you may need to make a triple call to pdflatex
+%%
+%%      If you are using TexLive or MikTex but not a bibtex type of bibliography
+%%      you may simply run Latex2e twice from the command line 
+%%          pdflatex -shell-escape swsc.tex
+%%          pdflatex -shell-escape swsc.tex
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%%   single column 12-point version for review
+%%
+
+%%  with traditional abstract
+\documentclass[referee,a4paper,12pt,traditabstract]{swsc}
+
+%%  with structured abstract 
+%\documentclass[referee,a4paper,12pt,structabstract]{swsc} 
+
+\usepackage{graphicx}
+\usepackage{txfonts}
+\usepackage{subfigure}
+\usepackage{epstopdf}
+\usepackage{lineno} % Package lässt sich nicht downloaden! Server!
+\usepackage[authoryear,round]{natbib} % Package lässt sich nicht downloaden! Server!
+\usepackage[backref]{hyperref}
+\usepackage{url}
+\usepackage{braket}
+\usepackage{booktabs}
+
+
+%%    This version assumes using bibtex with the swsc bibliography style file
+\bibliographystyle{swsc}
+
+\hypersetup{colorlinks=true,citecolor=cyan,urlcolor=cyan,linkcolor=blue}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+\begin{linenumbers}
+
+   \title{Differentiation between coronal holes and filament channels from SDO image data using machine learning algorithms}
+	
+   %\subtitle{}			  
+	
+   \titlerunning{Differentiation of CHs and FCs using machine learning algorithms}
+	
+   \authorrunning{M. Reiss et al.}
+	
+   \author{M. Reiss\inst{1}, S.J. Hofmeister\inst{1}, R. De Visscher\inst{2}, M. Temmer\inst{1}, A.M. Veronig\inst{1}, 
+	 \\ V. Delouille\inst{2}, T. Rotter\inst{1}, B. Mampaey\inst{2}}
+	
+   \institute{University of Graz, IGAM-Kanzelh\"ohe Observatory, NAWI Graz, Graz, Austria\\
+              \email{\href{mailto:martin.reiss@uni-graz.at}{martin.reiss@uni-graz.at}} \and
+							Royal Observatory of Belgium, Brussels, Belgium \\
+							\email{\href{mailto:veronique.delouille@oma.be}{veronique.delouille@oma.be}}}
+
+  %\date{Received September 16, 2014; accepted March 16, 2024}
+
+
+\abstract{
+	We evaluate the use of machine learning algorithms for distinguishing between coronal holes and filament channels as observed 
+	in SDO image data of the Sun. We analyzed a set of low intensity regions present on the Sun during the time range 2011 - 2013 using 
+	a combination of EUV observations from SDO/AIA and magnetograms. Based on visual inspection of $H_\alpha$ - filtergrams from Kanzelh\"ohe 
+	Observatory, we obtain {\bf data set of manually labelled coronal holes and filament channels. Mapping the extracted features from EUV observations onto 
+	the magnetograms allows to analyze the distinct magnetic field configuration. On this labelled data set, we computed shape measures from the binary map as well as first order, 
+	and second order texture statistics from EUV and magnetogram regions. We compared several  classifiers, namely Support Vector Machine, Linear Support Vector Machine, Random Forest, and Decision Tree, to find the most performant 
+	decision rule for differentiation between coronal holes and filament channels. We find out that all algorithms provide good results, with the linear Support Vector Machine giving the best performance. }
+	The results of this research support the idea that the developed methods have the potential to decrease coronal hole classification errors 	and could be useful for a wide range of applications in astrophysics. 
+  }        
+	 \keywords{Solar wind --
+						 Coronal holes --
+						 Machine learning...
+						 }
+
+   \maketitle
+%%______________
+\section{Supervised classification problem}
+In supervised classification problems, an object is observed and we wish to classify it into one of two
+classes ($0$ or $1$, here \lq filament' or \lq coronal hole'). To make this decision we have access to measurements of various properties of the object, called \emph{features}, see~Section\ref{S:feature} below.
+Given these feature vectors $\mathbf{x}\in R^d$, we must devise a decision (or classification) rule, that is, a mapping $c: R^d \rightarrow \{0,1\},$ where $c(\mathbf{x})$ indicates the decision when feature vector $\mathbf{x}$ is observed. 
+Out of the numerous collection of possible decision rules, we would like to select one that
+performs well. Four widely used algorithms with proven theoretical properties (Section~\ref{S:algo}) are evaluated via a common protocol (Section~\ref{S:evaluation}). Section~\ref{S:performance} describes the performance measures used to compare them. 
+
+
+\subsection{Feature vectors}
+\label{S:feature}
+The set of feature described in Section 3.1-3.4 {\bf{replace by label/ref}} together with the labelling of the maps as \lq filament' or \lq coronal hole' provide us with a labelled dataset of features values that can be used to train a classifier. 
+
+We consider two situations. First, the whole set of attributes, computed with both SDO/AIA and SDO/HMI from the SPOCA and histrogram-based threshold maps, is used as features values. Those are inputted into four classifiers with the aim to reach the best classification when as much information as possible is used. But for the SPOCA algorithm 
+
+On the other hand, we also applied the classifiers on the sub-set of attributes obtained SPOCA maps and AIA information only. The aim here is to obtain a set of rules that would be easily implemented into the EDS pipeline and measure the corresponding improvement in performance for the SPOCA algorithm.
+
+\subsection{Supervised classification algorithms}
+ \label{S:algo}
+
+
+We tested four classifiers using the scikit-learn~\cite{scikit-learn} library:
+\begin{description}
+\item[\bf{Linear Support Vector Machine}]
+
+The key idea of Linear Support Vector Machine (Linear SVM) is to find hyperplanes that separate the data as much as possible, that is, with a large margin. SVM optimizes a trade-off between maximizing the margin of separability between classes and minimizing margin errors. It provides a convex approximation to the combinatorial problem of minimizing classification errors.  The practical implementation is formulated as the minimization of a penalized loss function. We used the LIBLINEAR~\cite{liblinear} implementation of Linear SVM.
+
+\item[\bf{Support Vector Machine}]
+
+A second key idea of SVM as presented by Vapnick in his original formulation~\cite{svm} is to map the feature vectors in a nonlinear way to a high (possibly infinite) dimensional space and then utilize linear classifiers in this new space. This is done through the use of a kernel function. In our case, we tried several kernel functions: gaussian, sigmoid, polynomial and linear from the LIBSVM library~\cite{libsvm}.
+
+\item[\bf{Decision tree}]
+Decision trees produce a set of  if-then-else decision rules that are selected on the basis  of the expected reduction in entropy that would result from sorting a particular attribute. 
+Trees are usually grown to their maximum size before a pruning step is applied to reduce over-fitting.
+Various decision tree algorithms have been proposed~\cite{breiman,c45}. For this work we used decision trees using the Gini and entropy criteria and various depths and splitting rules~\footnote{\url{http://scikit-learn.org/stable/modules/tree.html}}.
+
+\item[\bf{Random Forest}]
+We tested an ensemble classifier method~\footnote{\url{http://scikit-learn.org/stable/modules/ensemble.html}}. More precisely, we used Random Forest, where a set of decision trees is created by introducing  some randomness in the construction of the decision tree. The prediction of the ensemble is given as the averaged prediction of the individual decision tree~\cite{random_forest}.
+
+\end{description}
+
+\subsection{Training and evaluation protocol}
+\label{S:evaluation}
+The supervised classification in machine learning is always performed in two steps. 1. During the training phase, a model is estimated from the data. 2. In the validation (or test-) phase the trained model is applied on other data and model properties (such error classification rate) are estimated. This is done in practice by splitting the initial data set into a 'training dataset' and a 'validation dataset'. 
+
+In this work however we want to compare the performance of several classifiers. In this case, performing the splitting only once is not enough, as the observed difference between two classifiers may depend on the chosen training and test samples. To avoid this, we need to repeat the comparison over randomly selected partitions of the data and report the average performance.
+
+We therefore perform 100 iterations of the following protocol.
+We do a  stratified shuffle-split of the original dataset  into a 75\% development set / 25\% evaluation set. This means that we shuffle the original dataset, then split this into two 75\% / 25\% subsets (shuffle-split) where each subset has approximately the same class distributions as the full dataset (stratification).
+The development set in each iteration is used to train and evaluate each hyper-parameter combination for each algorithm. To choose the best hyper-parameter compution we use stratified 5-fold cross-validation. A $k$-fold cross-validation means that the developement set is further split into $k$ folds.  Each combination of $k-1$ folds is tested for training and the remaining fold is used for testing, for a total of $k$ train/test splits. The use of a \emph{stratified} 5-fold cross-validation means that each fold has approximately the same class distributions as the original dataset.
+
+Once the optimal combination of hyper-parameters is found, it is used to train a classifier on the 75\% development set, and is evaluated on the 25\% evaluation set.
+
+Performance is measured by computing the confusion matrix (see Section~\ref{S:performance} below) for each of the 100 iterations. This allows us to get an average performance, but also a view on the variance in performance results accross the different runs.
+
+To build a classifier for new, unlabelled, points, we would proceed as follows: 
+\begin{itemize}
+\item Decide which algorithm performs the best according to the previous results
+\item Use 5-fold stratified cross validation to determine the best hyper-parameters for the chosen algorithm, on the full dataset
+\item Use the optimal hyper-parameters to train the final classifier on the full data set
+\end{itemize}
+
+\subsection{Performance measure}
+\label{S:performance}
+
+A confusion matrix, see Table~\ref{T:confusion} is computed in the evaluation phase. It contains the elements TP (true positive,  coronal hole predicted and observed), FP (false negative, coronal hole predicted and filament channel observed), FN (false negative, filament channel predicted and and coronal hole observed) and TN (true negative, filament channel predicted and filament channel observed).  
+
+There exist a variety of skill scores~\citep{woodcock76} built by combination of the confusion matrix elements. One  of the most frequently used is the Hanssen \& Kuipers discriminant also known as true skill statistics (TSS) \citep{bloomfield12}. TSS is a performance measure in the range $[-1,1]$ that is independent of the proportion of coronal holes and filament channels in the data set. TSS is defined as the proportion of correctly predicted coronal holes among all coronal holes (TPR) minus the proportion of filaments that were classified as coronal holes among all filaments (FPR): 
+		\begin{equation}
+		\mbox{TSS} = \mbox{TPR} - \mbox{FPR} = \frac{\mbox{TP}}{\mbox{TP+FN}} - \frac{\mbox{FP}}{\mbox{FP+TN}}
+		\label{eq:}
+		\end{equation}
+A TSS of $0$ indicates that the algorithm cannot distinguish between coronal holes and filament channels. A perfect classifier would have the value $1$ or $-1$ (inverse classification), respectively.
+
+\begin{table}[h]
+	\begin{center}
+	\begin{tabular}{@{}lll@{}}
+	\toprule
+	Predicted & Observed: Coronal Hole (CH) & Filament Channel (FC) \\ \midrule
+	CH        & True Positive (TP)          & False Positive (FP)   \\
+	FC        & False Negative (FN)         & True Negative (TN)    \\ \bottomrule
+	\end{tabular}
+	\end{center}
+\caption[]{Coronal hole and filament channel classification contingency table (confusion matrix). \label{T:confusion}}
+
+	\end{table}
+
+%%    If you wish to include your bibliography items in your tex file 
+%%    using {thebibliography} as shown below you must out-comment the 
+%%    three lines above (insert % at the start of each line) 
+
+\section{Results}
+All methods have a high TPR, especially the Random Forests and SVMs, but only the SVMs achieve at the same time a consistently low FPR, with Linear SVMs performing slightly better than kernel-based SVMs. Using the HMI based properties in addition to the AIA properties results in a big improvement in both TPR and FPR for all methods.
+
+\bibliography{bib_machine_learning}
+
+\end{linenumbers}
+
+\end{document}

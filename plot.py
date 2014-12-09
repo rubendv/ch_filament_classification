@@ -4,7 +4,7 @@ import json
 import scipy.stats
 import os
 
-for prefix in ("results/old", "results"):
+for prefix in ("results",):
     for infix in ("with", "without"):
         with open(os.path.join(prefix, "results_{}_hmi.json".format(infix))) as f:
             results = json.load(f)
