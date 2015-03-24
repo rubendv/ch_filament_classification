@@ -1,7 +1,7 @@
 from sklearn import datasets
 from sklearn.cross_validation import train_test_split, StratifiedKFold, StratifiedShuffleSplit, cross_val_score
 from sklearn.grid_search import GridSearchCV
-from sklearn.metrics import classification_report, make_scorer, confusion_matrix, recall_score, precision_score
+from sklearn.metrics import classification_report, make_scorer, confusion_matrix, recall_score, precision_score, roc_curve
 from sklearn.svm import SVC, LinearSVC
 from sklearn.tree import DecisionTreeClassifier, export_graphviz
 from sklearn.preprocessing import scale, normalize
@@ -54,6 +54,10 @@ if __name__ == "__main__":
             )
     }
 
+    #for name in 'SVM', 'Linear SVM':
+    #    for paramset in grid[name][1]:
+    #        paramset['probability'] = [True]
+
     def tss(y_true, y_pred):
         confmat = confusion_matrix(y_true, y_pred)
         tn = float(confmat[0, 0])
@@ -104,7 +108,7 @@ if __name__ == "__main__":
     cv_test = StratifiedShuffleSplit(y, n_iter=100, test_size=0.25)
 
     results = {}
-    for scorer in ("tss", "fpr", "tpr"):
+    for scorer in ("tss", "fpr", "tpr", 'roc'):
         results[scorer] = dict([(alg_name, []) for alg_name in grid.keys()]) 
 
     for i, (train_index, test_index) in enumerate(cv_test):
@@ -115,6 +119,10 @@ if __name__ == "__main__":
             print("Testing {}".format(alg_name))
             clf = GridSearchCV(classifier, tuned_parameters, cv=cv_parameter, scoring=tss_scorer, n_jobs=-1)
             clf.fit(X_train, y_train)
+            if 'SVM' in alg_name:
+                y_score = clf.decision_function(X_test)
+                roc_fpr, roc_tpr, _ = roc_curve(y_test, y_score)
+                results['roc'][alg_name].append({'fpr': list(roc_fpr), 'tpr': list(roc_tpr)})
             y_pred = clf.predict(X_test)
             results["fpr"][alg_name].append(fp_rate(y_test, y_pred))
             results["tpr"][alg_name].append(tp_rate(y_test, y_pred))
