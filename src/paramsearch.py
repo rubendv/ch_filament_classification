@@ -19,7 +19,7 @@ def load_data(path):
 
     X = dataset[dataset.columns[:-1]]
     y = dataset[dataset.columns[-1]]
-    return scale(X, axis=0), y
+    return scale(X, axis=0), y.as_matrix()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -121,8 +121,8 @@ if __name__ == "__main__":
             clf.fit(X_train, y_train)
             if 'SVM' in alg_name:
                 y_score = clf.decision_function(X_test)
-                roc_fpr, roc_tpr, _ = roc_curve(y_test, y_score)
-                results['roc'][alg_name].append({'fpr': list(roc_fpr), 'tpr': list(roc_tpr)})
+                #roc_fpr, roc_tpr, _ = roc_curve(y_test, y_score)
+                results['roc'][alg_name].append({'y_test': y_test.tolist(), 'y_score': y_score.tolist()})
             y_pred = clf.predict(X_test)
             results["fpr"][alg_name].append(fp_rate(y_test, y_pred))
             results["tpr"][alg_name].append(tp_rate(y_test, y_pred))
