@@ -23,13 +23,10 @@ def load_data(path):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--with-hmi", help="include HMI based parameters", action="store_true")
+    parser.add_argument("path", help="path to dataset")
     args = parser.parse_args()
 
-    if args.with_hmi:
-        path = "/home/local/data/DATASET_AIA_HMI.csv"
-    else:
-        path = "/home/local/data/DATASET_AIA.csv"
+    path = args.path
 
     X, y = load_data(path)
 
@@ -128,10 +125,6 @@ if __name__ == "__main__":
             results["tpr"][alg_name].append(tp_rate(y_test, y_pred))
             results["tss"][alg_name].append(tss(y_test, y_pred))
         print("Iteration {}/{} done".format(i+1, cv_test.n_iter))
-    with open("/tmp/results.json", "w+") as f:
+    base, ext = os.path.splitext(os.path.basename(path))
+    with open("/home/local/results/{}_results.json".format(base), "w+") as f:
         json.dump(results, f)
-    if args.with_hmi:
-        suffix = "with"
-    else:
-        suffix = "without"
-    print("Return value: {}".format(os.system("sudo cp /tmp/results.json /home/local/results/results_{}_hmi.json".format(suffix))))
