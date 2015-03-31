@@ -1,9 +1,10 @@
 import pandas as pd
 import json
 import os
+from glob import glob
 
 if __name__ == "__main__":
-    for results_path in ("results/results_with_hmi.json", "results/results_without_hmi.json"):
+    for results_path in glob("results/*AIA*_results.json"):
         with open(results_path, "r") as f:
             results = json.load(f)
         for measure in ("tss", "tpr", "fpr"):
